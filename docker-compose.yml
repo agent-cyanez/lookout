@@ -33,4 +33,7 @@ services:
         deploy-webhook,
         my-app,
         lookout,
-        beacon
+        beacon,
+        bosun,
+        sextant,
+        drift
