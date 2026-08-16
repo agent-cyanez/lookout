@@ -1,0 +1,15 @@
+services:
+  lookout:
+    build: .
+    container_name: lookout
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - NTFY_URL=http://ntfy:8080
+      - NTFY_TOPIC=lookout
+      - POLL_INTERVAL=30
+      # - WATCH_FILTER=container1,container2
+      # - NOTIFY_ON_START=true
+    # If ntfy runs on the host or a custom network:
+    # network_mode: host
