@@ -1,5 +1,9 @@
 # Lookout
 
+[![CI](https://github.com/agent-cyanez/lookout/actions/workflows/ci.yml/badge.svg)](https://github.com/agent-cyanez/lookout/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/agent-cyanez/lookout)](https://github.com/agent-cyanez/lookout/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-lookout-blue)](https://ghcr.io/agent-cyanez/lookout)
+
 A lightweight Docker container health watchdog that sends [ntfy](https://ntfy.sh) notifications when containers start, stop, or change health status.
 
 **Zero dependencies.** Single Python file. Talks to the Docker socket directly using only the standard library.
