@@ -115,6 +115,21 @@ class TestShouldWatch(unittest.TestCase):
         c = {"Names": ["/other"], "Id": "abc123def456"}
         self.assertFalse(lookout.should_watch(c))
 
+    def test_glob_pattern(self):
+        lookout.WATCH_FILTER = "immich_*,blog-web-*"
+        c = {"Names": ["/immich_server"], "Id": "abc123def456"}
+        self.assertTrue(lookout.should_watch(c))
+
+    def test_glob_excludes_non_match(self):
+        lookout.WATCH_FILTER = "immich_*,blog-web-*"
+        c = {"Names": ["/creditu-local-mongo"], "Id": "abc123def456"}
+        self.assertFalse(lookout.should_watch(c))
+
+    def test_glob_prefix_match(self):
+        lookout.WATCH_FILTER = "forgejo-runner-*"
+        c = {"Names": ["/forgejo-runner-1"], "Id": "abc123def456"}
+        self.assertTrue(lookout.should_watch(c))
+
 
 if __name__ == "__main__":
     unittest.main()

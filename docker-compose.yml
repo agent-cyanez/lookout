@@ -3,13 +3,33 @@ services:
     build: .
     container_name: lookout
     restart: unless-stopped
+    network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - NTFY_URL=http://ntfy:8080
-      - NTFY_TOPIC=lookout
+      - NTFY_URL=http://127.0.0.1:8888
+      - NTFY_TOPIC=vela
       - POLL_INTERVAL=30
-      # - WATCH_FILTER=container1,container2
-      # - NOTIFY_ON_START=true
-    # If ntfy runs on the host or a custom network:
-    # network_mode: host
+      - NOTIFY_ON_START=true
+      # Glob patterns supported (fnmatch). Only these containers trigger alerts.
+      - >-
+        WATCH_FILTER=ntfy,
+        forgejo,
+        forgejo-runner-*,
+        forgejo-docker-in-docker-*,
+        syncthing,
+        filebrowser,
+        homepage,
+        immich_server,
+        immich_postgres,
+        immich_redis,
+        immich_machine_learning,
+        blog-web-*,
+        kobo-article-pipeline-*,
+        vikunja,
+        vikunja-proxy,
+        walkingpad,
+        deploy-webhook,
+        buda-bot,
+        lookout,
+        beacon
