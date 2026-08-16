@@ -33,4 +33,7 @@ services:
         deploy-webhook,
         buda-bot,
         lookout,
-        beacon
+        beacon,
+        bosun,
+        sextant,
+        drift
