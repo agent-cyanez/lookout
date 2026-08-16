@@ -94,7 +94,11 @@ def should_watch(c):
         return True
     name = container_key(c)
     filters = [f.strip() for f in WATCH_FILTER.split(",")]
-    return any(fnmatch.fnmatch(name, f) for f in filters)
+    includes = [f for f in filters if not f.startswith("!")]
+    excludes = [f[1:] for f in filters if f.startswith("!")]
+    if not any(fnmatch.fnmatch(name, f) for f in includes):
+        return False
+    return not any(fnmatch.fnmatch(name, f) for f in excludes)
 
 
 def diff_states(prev, curr):

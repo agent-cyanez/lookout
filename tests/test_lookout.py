@@ -130,6 +130,18 @@ class TestShouldWatch(unittest.TestCase):
         c = {"Names": ["/forgejo-runner-1"], "Id": "abc123def456"}
         self.assertTrue(lookout.should_watch(c))
 
+    def test_exclude_pattern(self):
+        lookout.WATCH_FILTER = "blog-web-*, !*_replaced_*"
+        active = {"Names": ["/blog-web-abc123"], "Id": "abc123def456"}
+        replaced = {"Names": ["/blog-web-abc123_replaced_def789"], "Id": "def789abc123"}
+        self.assertTrue(lookout.should_watch(active))
+        self.assertFalse(lookout.should_watch(replaced))
+
+    def test_exclude_does_not_affect_other_includes(self):
+        lookout.WATCH_FILTER = "ntfy, blog-web-*, !*_replaced_*"
+        c = {"Names": ["/ntfy"], "Id": "abc123def456"}
+        self.assertTrue(lookout.should_watch(c))
+
 
 if __name__ == "__main__":
     unittest.main()

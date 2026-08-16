@@ -11,7 +11,7 @@ services:
       - NTFY_TOPIC=vela
       - POLL_INTERVAL=30
       - NOTIFY_ON_START=true
-      # Glob patterns supported (fnmatch). Only these containers trigger alerts.
+      # Glob patterns supported (fnmatch). Prefix ! to exclude.
       - >-
         WATCH_FILTER=ntfy,
         forgejo,
@@ -25,6 +25,7 @@ services:
         immich_redis,
         immich_machine_learning,
         blog-web-*,
+        !*_replaced_*,
         kobo-article-pipeline-*,
         vikunja,
         vikunja-proxy,
