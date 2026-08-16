@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Lookout — lightweight Docker container health watchdog with ntfy alerts."""
 
+import fnmatch
 import http.client
 import json
 import os
@@ -93,7 +94,7 @@ def should_watch(c):
         return True
     name = container_key(c)
     filters = [f.strip() for f in WATCH_FILTER.split(",")]
-    return name in filters
+    return any(fnmatch.fnmatch(name, f) for f in filters)
 
 
 def diff_states(prev, curr):
