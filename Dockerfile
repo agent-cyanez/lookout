@@ -2,4 +2,5 @@ FROM python:3.12-alpine
 WORKDIR /app
 COPY lookout.py .
 ENV PYTHONUNBUFFERED=1
+HEALTHCHECK --interval=60s --timeout=5s CMD pgrep -f lookout.py || exit 1
 ENTRYPOINT ["python3", "lookout.py"]
