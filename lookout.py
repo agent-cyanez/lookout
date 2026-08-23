@@ -20,6 +20,7 @@ POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "30"))
 WATCH_FILTER = os.environ.get("WATCH_FILTER", "")
 WATCH_STOPPED = os.environ.get("WATCH_STOPPED", "false").lower() == "true"
 NOTIFY_ON_START = os.environ.get("NOTIFY_ON_START", "false").lower() == "true"
+DEBOUNCE_SECONDS = int(os.environ.get("DEBOUNCE_SECONDS", "90"))
 
 
 class DockerClient:
@@ -164,6 +165,8 @@ def main():
     print(f"  ntfy:   {NTFY_URL}/{NTFY_TOPIC}")
     if WATCH_FILTER:
         print(f"  Filter: {WATCH_FILTER}")
+    if DEBOUNCE_SECONDS > 0:
+        print(f"  Debounce: {DEBOUNCE_SECONDS}s")
 
     docker = DockerClient(DOCKER_SOCKET)
 
@@ -179,6 +182,8 @@ def main():
         )
 
     running = True
+    pending_stops = {}   # name -> (timestamp, prev_health)
+    restart_grace = {}   # name -> timestamp
 
     def handle_signal(signum, frame):
         nonlocal running
@@ -205,11 +210,46 @@ def main():
             )
             continue
 
+        now = time.time()
         events = diff_states(prev_state, curr_state)
+
         for event_type, name, detail in events:
+            if DEBOUNCE_SECONDS > 0 and event_type == "stopped":
+                pending_stops[name] = (now, detail)
+                print(f"[debounce] {name} stopped — holding {DEBOUNCE_SECONDS}s")
+                continue
+
+            if DEBOUNCE_SECONDS > 0 and event_type == "started" and name in pending_stops:
+                del pending_stops[name]
+                restart_grace[name] = now
+                print(f"[debounce] {name} restarted — suppressed stopped/started")
+                continue
+
+            if DEBOUNCE_SECONDS > 0 and event_type == "changed" and name in restart_grace:
+                if now - restart_grace[name] < DEBOUNCE_SECONDS:
+                    print(f"[debounce] {name} health change during restart — suppressed")
+                    continue
+                del restart_grace[name]
+
             title, message, priority, tags = format_event(event_type, name, detail)
             print(f"[event] {title}: {message}")
             notify(title, message, priority=priority, tags=tags)
+
+        expired = [
+            (n, detail)
+            for n, (stop_time, detail) in pending_stops.items()
+            if now - stop_time >= DEBOUNCE_SECONDS
+        ]
+        for name, detail in expired:
+            del pending_stops[name]
+            title, message, priority, tags = format_event("stopped", name, detail)
+            print(f"[event] {title}: {message} (after debounce)")
+            notify(title, message, priority=priority, tags=tags)
+
+        restart_grace = {
+            n: t for n, t in restart_grace.items()
+            if now - t < DEBOUNCE_SECONDS
+        }
 
         prev_state = curr_state
 

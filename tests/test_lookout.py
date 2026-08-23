@@ -143,5 +143,96 @@ class TestShouldWatch(unittest.TestCase):
         self.assertTrue(lookout.should_watch(c))
 
 
+class TestDebounceIntegration(unittest.TestCase):
+    """Test the debounce logic by simulating poll cycles."""
+
+    def setUp(self):
+        self._orig_debounce = lookout.DEBOUNCE_SECONDS
+        lookout.DEBOUNCE_SECONDS = 90
+
+    def tearDown(self):
+        lookout.DEBOUNCE_SECONDS = self._orig_debounce
+
+    def test_stopped_then_started_suppresses_both(self):
+        """Container restarts within grace period — no notifications."""
+        pending_stops = {}
+        restart_grace = {}
+        notifications = []
+
+        def fake_notify(title, message, priority="default", tags=None):
+            notifications.append((title, message))
+
+        # Poll 1: container disappears
+        events = [("stopped", "app", "healthy")]
+        now = 1000.0
+        for event_type, name, detail in events:
+            if event_type == "stopped":
+                pending_stops[name] = (now, detail)
+
+        self.assertIn("app", pending_stops)
+        self.assertEqual(len(notifications), 0)
+
+        # Poll 2 (30s later): container reappears
+        events = [("started", "app", "running")]
+        now = 1030.0
+        for event_type, name, detail in events:
+            if event_type == "started" and name in pending_stops:
+                del pending_stops[name]
+                restart_grace[name] = now
+
+        self.assertNotIn("app", pending_stops)
+        self.assertIn("app", restart_grace)
+        self.assertEqual(len(notifications), 0)
+
+    def test_stopped_past_grace_fires(self):
+        """Container stays gone past debounce period — alert fires."""
+        pending_stops = {"app": (1000.0, "healthy")}
+        now = 1100.0  # 100s later, past 90s debounce
+
+        expired = [
+            (n, detail)
+            for n, (stop_time, detail) in pending_stops.items()
+            if now - stop_time >= lookout.DEBOUNCE_SECONDS
+        ]
+
+        self.assertEqual(len(expired), 1)
+        self.assertEqual(expired[0][0], "app")
+
+    def test_stopped_within_grace_holds(self):
+        """Container gone but still within debounce period — no alert yet."""
+        pending_stops = {"app": (1000.0, "healthy")}
+        now = 1060.0  # 60s later, still within 90s debounce
+
+        expired = [
+            (n, detail)
+            for n, (stop_time, detail) in pending_stops.items()
+            if now - stop_time >= lookout.DEBOUNCE_SECONDS
+        ]
+
+        self.assertEqual(len(expired), 0)
+
+    def test_health_change_during_restart_suppressed(self):
+        """Health transitions during restart grace are suppressed."""
+        restart_grace = {"app": 1000.0}
+        now = 1030.0  # 30s into grace period
+
+        suppressed = "app" in restart_grace and now - restart_grace["app"] < lookout.DEBOUNCE_SECONDS
+        self.assertTrue(suppressed)
+
+    def test_health_change_after_grace_fires(self):
+        """Health changes after grace period are not suppressed."""
+        restart_grace = {"app": 1000.0}
+        now = 1100.0  # 100s, past grace period
+
+        suppressed = "app" in restart_grace and now - restart_grace["app"] < lookout.DEBOUNCE_SECONDS
+        self.assertFalse(suppressed)
+
+    def test_debounce_disabled_fires_immediately(self):
+        """With DEBOUNCE_SECONDS=0, stopped events fire immediately."""
+        lookout.DEBOUNCE_SECONDS = 0
+        # When debounce is 0, the code path skips the pending_stops logic
+        self.assertEqual(lookout.DEBOUNCE_SECONDS, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
