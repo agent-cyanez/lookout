@@ -22,6 +22,27 @@ WATCH_STOPPED = os.environ.get("WATCH_STOPPED", "false").lower() == "true"
 NOTIFY_ON_START = os.environ.get("NOTIFY_ON_START", "false").lower() == "true"
 DEBOUNCE_SECONDS = int(os.environ.get("DEBOUNCE_SECONDS", "90"))
 
+# ntfy priority ceiling. Set NTFY_MAX_PRIORITY (e.g. "default") to stop this
+# tool from ever sending high/urgent, so those levels stay reserved for
+# messages a human must see. Empty means no cap.
+_PRIORITY_LEVELS = {"min": 1, "low": 2, "default": 3, "high": 4, "urgent": 5, "max": 5,
+                    "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
+NTFY_MAX_PRIORITY = os.environ.get("NTFY_MAX_PRIORITY", "").strip().lower()
+if NTFY_MAX_PRIORITY and NTFY_MAX_PRIORITY not in _PRIORITY_LEVELS:
+    raise SystemExit(f"Invalid NTFY_MAX_PRIORITY: {NTFY_MAX_PRIORITY!r}")
+
+
+def cap_priority(priority, cap=None):
+    """Lower priority to the configured ceiling; leave it alone if under it."""
+    cap = NTFY_MAX_PRIORITY if cap is None else cap
+    if not cap:
+        return priority
+    level = _PRIORITY_LEVELS.get(str(priority).strip().lower())
+    if level is None or level <= _PRIORITY_LEVELS[cap]:
+        return priority
+    return cap
+
+
 
 class DockerClient:
     def __init__(self, socket_path):
@@ -57,7 +78,7 @@ def notify(title, message, priority="default", tags=None):
     url = f"{NTFY_URL}/{NTFY_TOPIC}"
     headers = {
         "Title": title,
-        "Priority": priority,
+        "Priority": cap_priority(priority),
     }
     if tags:
         headers["Tags"] = ",".join(tags)

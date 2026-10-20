@@ -39,6 +39,7 @@ Notifications go to any [ntfy](https://ntfy.sh) server — self-hosted or ntfy.s
 | `DOCKER_HOST` | `/var/run/docker.sock` | Path to Docker socket |
 | `NTFY_URL` | `http://127.0.0.1:8888` | ntfy server URL |
 | `NTFY_TOPIC` | `lookout` | ntfy topic to publish to |
+| `NTFY_MAX_PRIORITY` | *(none)* | Ceiling for alert priority (`min`, `low`, `default`, `high`, `urgent`). Set to `default` to keep high/urgent free for messages a human must see |
 | `POLL_INTERVAL` | `30` | Seconds between checks |
 | `WATCH_FILTER` | _(empty = all)_ | Comma-separated container names to watch |
 | `WATCH_STOPPED` | `false` | Include stopped containers in monitoring |
