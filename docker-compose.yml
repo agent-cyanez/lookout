@@ -6,6 +6,9 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file:
+      - path: .env
+        required: false
     environment:
       - NTFY_URL=http://127.0.0.1:8888
       - NTFY_TOPIC=vela
@@ -13,28 +16,3 @@ services:
       - POLL_INTERVAL=30
       - NOTIFY_ON_START=true
       # Glob patterns supported (fnmatch). Prefix ! to exclude.
-      - >-
-        WATCH_FILTER=ntfy,
-        forgejo,
-        forgejo-runner-*,
-        forgejo-docker-in-docker-*,
-        syncthing,
-        filebrowser,
-        homepage,
-        immich_server,
-        immich_postgres,
-        immich_redis,
-        immich_machine_learning,
-        blog-web-*,
-        !*_replaced_*,
-        reader-pipeline-*,
-        vikunja,
-        vikunja-proxy,
-        my-tool,
-        deploy-webhook,
-        my-app,
-        lookout,
-        beacon,
-        bosun,
-        sextant,
-        drift
